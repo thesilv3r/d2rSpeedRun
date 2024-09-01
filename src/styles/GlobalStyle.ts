@@ -1,6 +1,10 @@
 import { createGlobalStyle } from 'styled-components'
 
-export const GlobalStyle = createGlobalStyle`
+interface GlobalStyleProps {
+  font: string;
+}
+
+export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
   * {
     margin: 0;
     padding: 0;
@@ -12,7 +16,7 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   body {
-    font-family: monospace !important;
+    font-family: ${props => props.font}, monospace !important;
     font-size: 16px !important;
     color: #E1E1E6;
   }

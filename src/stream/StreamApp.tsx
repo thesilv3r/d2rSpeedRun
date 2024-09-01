@@ -8,20 +8,25 @@ import { GlobalStyle } from '../styles/GlobalStyle';
 import prettyMs from 'pretty-ms';
 import { StatLabel, StatLine, StatValue } from './styles';
 import { useTranslation } from 'react-i18next';
+import defaultSettings from '../utils/defaultSettings';
 
 export default function StreamApp() {
   const [data, setData] = useState<FileReaderResponse | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
   const timer = useTimer({
     delay: 1000,
     callback: () => { setLastUpdate(lastUpdate + 1);}
   });
   const { t, i18n } = useTranslation();
 
+  const containerWidth = 100 - settings.columnGap;
+
   useEffect(() => {
     const socket = io();
-    socket.on("updatedSettings", function (settings: Settings) {
-      i18n.changeLanguage(settings.lang);
+    socket.on("updatedSettings", function (newSettings: Settings) {
+      i18n.changeLanguage(newSettings.lang);
+      setSettings(newSettings);
     });
     socket.on("openFolder", function (data: FileReaderResponse) {
       setData(data);
@@ -70,11 +75,11 @@ export default function StreamApp() {
   const lastUpdateFmt = prettyMs(lastUpdate * 1000, {compact: true});
 
   return <>
-    <GlobalStyle />
+    <GlobalStyle font={settings.font} />
     <ThemeProvider theme={createTheme({palette: { mode: 'dark' }})}>
       <div id="stream">
-        <div id="stats" style={{ width: '100%' }}>
-          <Grid container>
+        <div id="stats" style={{ width: `${containerWidth}%` }}>
+          <Grid container spacing={0}> {/* Set spacing to 0 */}
             <Grid item xs={4}>
               <StatLine>
                 <StatLabel style={{  color: '#ffbd6a' }}>
@@ -159,7 +164,7 @@ export default function StreamApp() {
                 </StatValue>
               </StatLine>
             </Grid>
-            <Grid item xs={4} alignItems={'end'}>
+            <Grid item xs={4} alignItems={'end'} >
               <StatLine>
                 <StatLabel>
                   FHR:

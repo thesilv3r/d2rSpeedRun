@@ -25,4 +25,6 @@ export type FileReaderResponse = {
 export type Settings = {
   saveDir: string,
   lang: string,
+  font: string,
+  columnGap: number,
 }

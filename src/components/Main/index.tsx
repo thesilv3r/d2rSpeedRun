@@ -1,5 +1,6 @@
 import { Container, FolderButton } from './styles'
-import { Typography, Button, FormControlLabel, Switch } from '@mui/material';
+import { Typography, Button, FormControlLabel, Switch, TextField, Select, MenuItem } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { UiState } from '../../App';
 import { MouseEventHandler, useState } from 'react';
 import { Settings } from '../../@types/main';
@@ -15,8 +16,25 @@ type MainProps = {
   onFileClick: MouseEventHandler<HTMLButtonElement>,
 }
 
+
 export function Main({ uiState, settings, localPort, onFileClick }: MainProps) {
   const { t } = useTranslation();
+  const [font, setFont] = useState(settings.font);
+  const [columnGap, setColumnGap] = useState(settings.columnGap);
+
+  const handleFontChange = (event: SelectChangeEvent<string>) => {
+    const newFont = event.target.value;
+    setFont(newFont);
+    window.Main.saveSetting('font', newFont);
+  };
+
+  const handleColumnGapChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newGap = parseInt(event.target.value);
+    setColumnGap(newGap);
+    window.Main.saveSetting('columnGap', newGap);
+  };
+  
+
   return (
     <Container className="animate__animated animate__fadeIn">
       <div style={{ position: 'absolute', right: 10, top: 0 }}>
@@ -60,6 +78,26 @@ export function Main({ uiState, settings, localPort, onFileClick }: MainProps) {
                 draggable: false,
               });
             }}>http://localhost:{localPort} <ContentCopyIcon fontSize='small' /></a>
+          </div>
+          <div style={{ marginTop: 20 }}>
+            <Typography variant="h6">Settings</Typography>
+            <Select
+              value={font}
+              onChange={handleFontChange}
+              style={{ marginRight: 10 }}
+            >
+              <MenuItem value="Exocet">Exocet</MenuItem>
+              <MenuItem value="Roboto">Roboto</MenuItem>
+              <MenuItem value="Arial">Arial</MenuItem>
+              <MenuItem value="Times New Roman">Times New Roman</MenuItem>
+            </Select>
+            <TextField
+              type="number"
+              label="Column Gap"
+              value={columnGap}
+              onChange={handleColumnGapChange}
+              inputProps={{ min: 0, max: 80 }}
+            />
           </div>
           <p>
             {t("Statistics are updated each time the game saves the game, which is:")}
