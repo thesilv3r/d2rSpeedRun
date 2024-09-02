@@ -5,7 +5,7 @@
   "description": "Scan your Diablo 2 Resurrected saves and displays stats about the last updated one",
   "main": "./.webpack/main",
   "scripts": {
-    "start": "set ELECTRON_ENV=development&&electron-forge start",
+    "start": "electron-forge start",
     "package": "electron-forge package",
     "build-mac": "electron-builder build -m",
     "build-win": "electron-builder build -w",

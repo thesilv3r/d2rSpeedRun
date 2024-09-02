@@ -39,35 +39,45 @@ export default function StreamApp() {
     return null;
   }
 
-  const runes: {[runeId: number]: {count: number, name: string}} = {};
+  const itemCounts: {[itemId: string]: {count: number, name: string, category: string}} = {};
   data.items.forEach(item => {
-    if (item.categories.includes("Rune")) {
-      const idx = parseInt(item.type.replace('r', ''));
-      if (!runes[idx]) {
-        runes[idx] = {
+    if (item.categories.includes("Rune") || 
+        (item.categories.includes("Gem") && 
+         settings.selectedGems.some(gemType => item.type_name.toLowerCase().includes(gemType)))) {
+      const itemKey = item.type;
+      if (!itemCounts[itemKey]) {
+        itemCounts[itemKey] = {
           count: 1,
-          name: item.type_name.replace(' Rune', ''),
+          name: item.type_name.replace(' Rune', '').replace(' Gem', ''),
+          category: item.categories.includes("Rune") ? "Rune" : "Gem"
         }
       } else {
-        runes[idx].count++;
+        itemCounts[itemKey].count++;
       }
     }
   })
 
-  const runesArr: ReactNode[] = [];
+  const itemsArr: ReactNode[] = [];
   
-  Object.keys(runes)
-    .forEach((idxStr: string, i: number) => {
-      const idx = parseInt(idxStr);
-      if (!runes[idx]) return null;
+  Object.keys(itemCounts)
+    .sort((a, b) => {
+      // Sort by category (Runes first, then Gems) and then by name
+      if (itemCounts[a].category !== itemCounts[b].category) {
+        return itemCounts[a].category === "Rune" ? -1 : 1;
+      }
+      return itemCounts[a].name.localeCompare(itemCounts[b].name);
+    })
+    .forEach((itemKey: string, i: number) => {
+      const item = itemCounts[itemKey];
       if (i > 0) {
-        runesArr.push(<span key={i + 'sep'}> </span>);
+        itemsArr.push(<span key={i + 'sep'}> </span>);
       }
-      if (runes[idx].count === 1) {
-        runesArr.push(<span key={idx}>{runes[idx].name}</span>);
+      const itemColor = item.category === "Rune" ? "#FFA500" : "#00FFFF"; // Orange for Runes, Cyan for Gems
+      if (item.count === 1) {
+        itemsArr.push(<span key={itemKey} style={{color: itemColor}}>{item.name}</span>);
       }
-      if (runes[idx].count > 1) {
-        runesArr.push(<span key={idx}><small>{ runes[idx].count }<span style={{color: '#aaa'}}>x</span></small>{runes[idx].name}</span>);
+      if (item.count > 1) {
+        itemsArr.push(<span key={itemKey} style={{color: itemColor}}><small>{ item.count }<span style={{color: '#aaa'}}>x</span></small>{item.name}</span>);
       }
     });
 
@@ -192,7 +202,7 @@ export default function StreamApp() {
             </Grid>
           </Grid>
           <div style={{ paddingLeft: 5, paddingTop: 3, textShadow: '0 0 2px black' }}>
-            {runesArr}
+            {itemsArr}
           </div>
           <div style={{ paddingLeft: 5, paddingTop: 5, color: '#777', fontSize: 14, textShadow: '0 0 2px black' }}>
             {lastUpdate > 5 && <>{t('Odczytane ')}{lastUpdateFmt} {t('temu')}</>}

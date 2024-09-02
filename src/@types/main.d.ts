@@ -27,4 +27,5 @@ export type Settings = {
   lang: string,
   font: string,
   columnGap: number,
+  selectedGems: string[],
 }
