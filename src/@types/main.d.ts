@@ -19,6 +19,9 @@ export type FileReaderResponse = {
     cold: number,
     lightning: number,
     poison: number,
+    categories: string[];
+    type: string;
+    type_name: string;
   },
 }
 
@@ -27,5 +30,5 @@ export type Settings = {
   lang: string,
   font: string,
   columnGap: number,
-  selectedGems: string[],
+  selectedGemFilters: string[],
 }

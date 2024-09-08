@@ -10,6 +10,9 @@ import { StatLabel, StatLine, StatValue } from './styles';
 import { useTranslation } from 'react-i18next';
 import defaultSettings from '../utils/defaultSettings';
 
+const gemTypes = ['topaz', 'amethyst', 'sapphire', 'ruby', 'emerald', 'diamond', 'skull'];
+const gemQualities = ['chipped', 'flawed', 'normal', 'flawless', 'perfect'];
+
 export default function StreamApp() {
   const [data, setData] = useState<FileReaderResponse | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number>(0);
@@ -39,47 +42,94 @@ export default function StreamApp() {
     return null;
   }
 
-  const itemCounts: {[itemId: string]: {count: number, name: string, category: string}} = {};
+  const formatGemName = (name: string): string => {
+    const words = name.split(' ');
+    if (words.length === 2) {
+      const [quality, gemType] = words;
+      return `${quality[0]}${quality[quality.length - 1]} ${gemType}`;
+    }
+    return name;
+  };
+
+  const getGemQuality = (name: string): string => {
+    const words = name.split(' ');
+    if (words.length === 2) {
+      return words[0].toLowerCase();
+    }
+    return 'normal';
+  };
+
+  const itemCounts: {[itemId: string]: {count: number, name: string, category: string, quality?: string, gemType?: string}} = {};
+  const qualityCounts: {[quality: string]: number} = {};
+
   data.items.forEach(item => {
-    if (item.categories.includes("Rune") || 
-        (item.categories.includes("Gem") && 
-         settings.selectedGems.some(gemType => item.type_name.toLowerCase().includes(gemType)))) {
+    if (item.categories.includes("Rune") || item.categories.includes("Gem")) {
       const itemKey = item.type;
+      const isGem = item.categories.includes("Gem");
+      const gemType = isGem ? gemTypes.find(type => item.type_name.toLowerCase().includes(type)) : undefined;
+      const gemQuality = isGem ? getGemQuality(item.type_name) : undefined;
+
       if (!itemCounts[itemKey]) {
         itemCounts[itemKey] = {
           count: 1,
-          name: item.type_name.replace(' Rune', '').replace(' Gem', ''),
-          category: item.categories.includes("Rune") ? "Rune" : "Gem"
+          name: isGem ? formatGemName(item.type_name.replace(' Gem', '')) : item.type_name.replace(' Rune', ''),
+          category: isGem ? "Gem" : "Rune",
+          quality: gemQuality,
+          gemType: gemType
         }
       } else {
         itemCounts[itemKey].count++;
       }
+
+      if (isGem && gemQuality) {
+        qualityCounts[gemQuality] = (qualityCounts[gemQuality] || 0) + 1;
+      }
     }
-  })
+  });
 
   const itemsArr: ReactNode[] = [];
   
-  Object.keys(itemCounts)
-    .sort((a, b) => {
-      // Sort by category (Runes first, then Gems) and then by name
-      if (itemCounts[a].category !== itemCounts[b].category) {
-        return itemCounts[a].category === "Rune" ? -1 : 1;
-      }
-      return itemCounts[a].name.localeCompare(itemCounts[b].name);
+  // Filter and sort items
+  const filteredItems = Object.entries(itemCounts)
+    .filter(([_, item]) => {
+      if (item.category === "Rune") return true;
+      if (item.gemType && settings.selectedGemFilters.includes(item.gemType)) return true;
+      return false;
     })
-    .forEach((itemKey: string, i: number) => {
-      const item = itemCounts[itemKey];
-      if (i > 0) {
-        itemsArr.push(<span key={i + 'sep'}> </span>);
+    .sort(([_, a], [__, b]) => {
+      if (a.category !== b.category) {
+        return a.category === "Rune" ? -1 : 1;
       }
-      const itemColor = item.category === "Rune" ? "#FFA500" : "#00FFFF"; // Orange for Runes, Cyan for Gems
-      if (item.count === 1) {
-        itemsArr.push(<span key={itemKey} style={{color: itemColor}}>{item.name}</span>);
-      }
-      if (item.count > 1) {
-        itemsArr.push(<span key={itemKey} style={{color: itemColor}}><small>{ item.count }<span style={{color: '#aaa'}}>x</span></small>{item.name}</span>);
-      }
+      return a.name.localeCompare(b.name);
     });
+
+  // Display filtered items
+  filteredItems.forEach(([itemKey, item], i) => {
+    if (i > 0) {
+      itemsArr.push(<span key={i + 'sep'}> </span>);
+    }
+    const itemColor = item.category === "Rune" ? "#FFA500" : "#00FFFF";
+    itemsArr.push(
+      <span key={itemKey} style={{color: itemColor}}>
+        {item.count > 1 && <small>{item.count}<span style={{color: '#aaa'}}>x</span></small>}
+        {item.name}
+      </span>
+    );
+  });
+
+  // Display quality counts
+  gemQualities.forEach(quality => {
+    if (settings.selectedGemFilters.includes(quality) && qualityCounts[quality]) {
+      if (itemsArr.length > 0) {
+        itemsArr.push(<span key={quality + 'sep'}> </span>);
+      }
+      itemsArr.push(
+        <span key={quality} style={{color: "#00FFFF"}}>
+          {qualityCounts[quality]}<span style={{color: '#aaa'}}>x</span>{quality.charAt(0).toUpperCase() + quality.slice(1)}
+        </span>
+      );
+    }
+  });
 
   const gold = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(data.stats.gold)
   const lastUpdateFmt = prettyMs(lastUpdate * 1000, {compact: true});
