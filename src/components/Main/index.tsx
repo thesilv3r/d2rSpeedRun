@@ -48,6 +48,13 @@ export function Main({ uiState, settings, localPort, onFileClick }: MainProps) {
     window.Main.saveSetting('columnGap', newGap);
   };
   
+  const [runesGemsPosition, setRunesGemsPosition] = useState(settings.runesGemsPosition);
+
+  const handleRunesGemsPositionChange = (event: SelectChangeEvent<string>) => {
+    const newPosition = event.target.value as 'above' | 'below' | 'left' | 'right';
+    setRunesGemsPosition(newPosition);
+    window.Main.saveSetting('runesGemsPosition', newPosition);
+  };
 
   return (
     <Container className="animate__animated animate__fadeIn">
@@ -127,6 +134,17 @@ export function Main({ uiState, settings, localPort, onFileClick }: MainProps) {
                   <ListItemText primary={filter.charAt(0).toUpperCase() + filter.slice(1)} />
                 </MenuItem>
               ))}
+            </Select>
+            <Select
+              value={runesGemsPosition}
+              onChange={handleRunesGemsPositionChange}
+              label="Runes & Gems Position"
+              style={{ marginTop: 10, width: 200 }}
+            >
+              <MenuItem value="above">Above</MenuItem>
+              <MenuItem value="below">Below</MenuItem>
+              <MenuItem value="left">Left</MenuItem>
+              <MenuItem value="right">Right</MenuItem>
             </Select>
           </div>
           <p>

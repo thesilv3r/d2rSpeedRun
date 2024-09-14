@@ -1,9 +1,8 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode, Fragment } from 'react';
 import { useTimer } from "react-use-precision-timer";
 import { io } from "socket.io-client";
 import { FileReaderResponse, Settings } from '../@types/main.d';
-import { Grid, createTheme } from '@mui/material';
-import { ThemeProvider } from '@mui/system';
+import { Grid, Box, createTheme, ThemeProvider } from '@mui/material';
 import { GlobalStyle } from '../styles/GlobalStyle';
 import prettyMs from 'pretty-ms';
 import { StatLabel, StatLine, StatValue } from './styles';
@@ -131,6 +130,42 @@ export default function StreamApp() {
     }
   });
 
+  const renderRunesAndGems = () => {
+    const isVertical = settings.runesGemsPosition === 'left' || settings.runesGemsPosition === 'right';
+
+    return (
+      <Box sx={{
+        paddingLeft: 1,
+        paddingTop: 1,
+        paddingBottom: 1,
+        textShadow: '0 0 2px black',
+        display: 'flex',
+        flexDirection: isVertical ? 'column' : 'row',
+        flexWrap: 'wrap',
+        '& > *': {
+          marginRight: isVertical ? '2em' : '0.5em',
+          lineHeight: isVertical ? '1.2em' : 'inherit',
+        },
+        '& > *:last-child': {
+          marginRight: 0,
+        },
+      }}>
+        {itemsArr.map((item, index) => (
+          <Fragment key={index}>
+            {item}
+          </Fragment>
+        ))}
+      </Box>
+    );
+  };
+
+
+  const renderLastUpdate = () => (
+    <Box sx={{ paddingLeft: 1, paddingTop: 1, color: '#777', fontSize: 14, textShadow: '0 0 2px black' }}>
+      {lastUpdate > 5 && <>{t('Odczytane ')}{lastUpdateFmt} {t('temu')}</>}
+    </Box>
+  );
+
   const gold = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(data.stats.gold)
   const lastUpdateFmt = prettyMs(lastUpdate * 1000, {compact: true});
 
@@ -138,126 +173,131 @@ export default function StreamApp() {
     <GlobalStyle font={settings.font} />
     <ThemeProvider theme={createTheme({palette: { mode: 'dark' }})}>
       <div id="stream">
-        <div id="stats" style={{ width: `${containerWidth}%` }}>
-          <Grid container spacing={0}> {/* Set spacing to 0 */}
-            <Grid item xs={4}>
-              <StatLine>
-                <StatLabel style={{  color: '#ffbd6a' }}>
-                  Gold:
-                </StatLabel>
-                <StatValue style={{ color: '#ffbd6a' }}>
-                  {gold}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel style={{ color: '#ff8888' }}>
-                  Fire:
-                </StatLabel>
-                <StatValue style={{ color: '#ff8888' }}>
-                  {data.stats.fire}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel style={{ color: '#8888ff' }}>
-                  Cold:
-                </StatLabel>
-                <StatValue style={{ color: '#8888ff' }}>
-                  {data.stats.cold}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel style={{ color: '#ffff88' }}>
-                  Ligh:
-                </StatLabel>
-                <StatValue style={{ color: '#ffff88' }}>
-                  {data.stats.lightning}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel style={{ color: '#88ff88' }}>
-                  Pois:
-                </StatLabel>
-                <StatValue style={{ color: '#88ff88' }}>
-                  {data.stats.poison}
-                </StatValue>
-              </StatLine>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: settings.runesGemsPosition === 'left' || settings.runesGemsPosition === 'right' ? 'row' : 'column',
+          width: `${containerWidth}%`,
+        }}>
+          {settings.runesGemsPosition === 'above' && renderRunesAndGems()}
+          {settings.runesGemsPosition === 'left' && renderRunesAndGems()}
+          <Box sx={{ flexGrow: 1 }}>
+            <Grid container spacing={0}> {/* Set spacing to 0 */}
+              <Grid item xs={4}>
+                <StatLine>
+                  <StatLabel style={{  color: '#ffbd6a' }}>
+                    Gold:
+                  </StatLabel>
+                  <StatValue style={{ color: '#ffbd6a' }}>
+                    {gold}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel style={{ color: '#ff8888' }}>
+                    Fire:
+                  </StatLabel>
+                  <StatValue style={{ color: '#ff8888' }}>
+                    {data.stats.fire}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel style={{ color: '#8888ff' }}>
+                    Cold:
+                  </StatLabel>
+                  <StatValue style={{ color: '#8888ff' }}>
+                    {data.stats.cold}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel style={{ color: '#ffff88' }}>
+                    Ligh:
+                  </StatLabel>
+                  <StatValue style={{ color: '#ffff88' }}>
+                    {data.stats.lightning}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel style={{ color: '#88ff88' }}>
+                    Pois:
+                  </StatLabel>
+                  <StatValue style={{ color: '#88ff88' }}>
+                    {data.stats.poison}
+                  </StatValue>
+                </StatLine>
+              </Grid>
+              <Grid item xs={4}>
+                <StatLine>
+                  <StatLabel>
+                    Lvl:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.level}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    Str:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.strength}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    Dex:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.dexterity}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    Vit:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.vitality}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    Ene:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.energy}
+                  </StatValue>
+                </StatLine>
+              </Grid>
+              <Grid item xs={4} alignItems={'end'} >
+                <StatLine>
+                  <StatLabel>
+                    FHR:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.fasterHitRate}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    FCR:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.fasterCastRate}
+                  </StatValue>
+                </StatLine>
+                <StatLine>
+                  <StatLabel>
+                    FRW:
+                  </StatLabel>
+                  <StatValue>
+                    {data.stats.fasterRunWalk}
+                  </StatValue>
+                </StatLine>
+              </Grid>
             </Grid>
-            <Grid item xs={4}>
-              <StatLine>
-                <StatLabel>
-                  Lvl:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.level}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  Str:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.strength}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  Dex:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.dexterity}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  Vit:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.vitality}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  Ene:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.energy}
-                </StatValue>
-              </StatLine>
-            </Grid>
-            <Grid item xs={4} alignItems={'end'} >
-              <StatLine>
-                <StatLabel>
-                  FHR:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.fasterHitRate}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  FCR:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.fasterCastRate}
-                </StatValue>
-              </StatLine>
-              <StatLine>
-                <StatLabel>
-                  FRW:
-                </StatLabel>
-                <StatValue>
-                  {data.stats.fasterRunWalk}
-                </StatValue>
-              </StatLine>
-            </Grid>
-          </Grid>
-          <div style={{ paddingLeft: 5, paddingTop: 3, textShadow: '0 0 2px black' }}>
-            {itemsArr}
-          </div>
-          <div style={{ paddingLeft: 5, paddingTop: 5, color: '#777', fontSize: 14, textShadow: '0 0 2px black' }}>
-            {lastUpdate > 5 && <>{t('Odczytane ')}{lastUpdateFmt} {t('temu')}</>}
-          </div>
-        </div>
+          </Box>
+          {settings.runesGemsPosition === 'right' && renderRunesAndGems()}
+          {settings.runesGemsPosition === 'below' && renderRunesAndGems()}
+          {renderLastUpdate()}
+        </Box>
       </div>
     </ThemeProvider>
   </>;

@@ -6,6 +6,7 @@ const defaultSettings: Settings = {
   font: 'Roboto',
   columnGap: 10,
   selectedGemFilters: ['topaz', 'amethyst', 'sapphire', 'ruby', 'emerald', 'diamond', 'skull'],
+  runesGemsPosition: 'below',
 }
 
 export default defaultSettings;
