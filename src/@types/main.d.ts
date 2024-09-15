@@ -31,5 +31,7 @@ export type Settings = {
   font: string,
   columnGap: number,
   selectedGemFilters: string[],
-  runesGemsPosition: 'above' | 'below' | 'left' | 'right',
+  runesGemsPosition: 'above' | 'below' | 'left' | 'right' | 'off',
+  statsDisplayMode: 'Grid' | 'Vertical' | 'Horizontal',
+  textAlignment: 'left' | 'right',
 }

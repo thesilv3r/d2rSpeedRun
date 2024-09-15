@@ -5,8 +5,10 @@ const defaultSettings: Settings = {
   lang: '',
   font: 'Roboto',
   columnGap: 10,
-  selectedGemFilters: ['topaz', 'amethyst', 'sapphire', 'ruby', 'emerald', 'diamond', 'skull'],
+  selectedGemFilters: ['runes', 'topaz', 'amethyst', 'sapphire', 'ruby', 'emerald', 'diamond', 'skull'],
   runesGemsPosition: 'below',
+  statsDisplayMode: 'Grid',
+  textAlignment: 'left',
 }
 
 export default defaultSettings;

@@ -8,9 +8,19 @@ import prettyMs from 'pretty-ms';
 import { StatLabel, StatLine, StatValue } from './styles';
 import { useTranslation } from 'react-i18next';
 import defaultSettings from '../utils/defaultSettings';
+import styled from 'styled-components';
 
 const gemTypes = ['topaz', 'amethyst', 'sapphire', 'ruby', 'emerald', 'diamond', 'skull'];
 const gemQualities = ['chipped', 'flawed', 'normal', 'flawless', 'perfect'];
+type StatKey = 'Gold' | 'Fire' | 'Cold' | 'Ligh' | 'Pois' | 'Lvl' | 'Str' | 'Dex' | 'Vit' | 'Ene' | 'FHR' | 'FCR' | 'FRW';
+
+const FullWidthBox = styled(Box)`
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  box-sizing: border-box;
+  padding: 0 10px;
+  font-family: ${props => props.theme.font}, sans-serif;
+`;
 
 export default function StreamApp() {
   const [data, setData] = useState<FileReaderResponse | null>(null);
@@ -50,6 +60,13 @@ export default function StreamApp() {
     return name;
   };
 
+  const formatKeyName = (name: string): string => {
+    if (name.includes("Key of Destruction")) return "DKey";
+    if (name.includes("Key of Terror")) return "TKey";
+    if (name.includes("Key of Hate")) return "HKey";
+    return name;
+  };
+
   const getGemQuality = (name: string): string => {
     const words = name.split(' ');
     if (words.length === 2) {
@@ -62,17 +79,18 @@ export default function StreamApp() {
   const qualityCounts: {[quality: string]: number} = {};
 
   data.items.forEach(item => {
-    if (item.categories.includes("Rune") || item.categories.includes("Gem")) {
+    if (item.categories.includes("Rune") || item.categories.includes("Gem") || item.type_name.includes("Key of")) {
       const itemKey = item.type;
       const isGem = item.categories.includes("Gem");
+      const isKey = item.type_name.includes("Key of");
       const gemType = isGem ? gemTypes.find(type => item.type_name.toLowerCase().includes(type)) : undefined;
       const gemQuality = isGem ? getGemQuality(item.type_name) : undefined;
 
       if (!itemCounts[itemKey]) {
         itemCounts[itemKey] = {
           count: 1,
-          name: isGem ? formatGemName(item.type_name.replace(' Gem', '')) : item.type_name.replace(' Rune', ''),
-          category: isGem ? "Gem" : "Rune",
+          name: isKey ? formatKeyName(item.type_name) : isGem ? formatGemName(item.type_name.replace(' Gem', '')) : item.type_name.replace(' Rune', ''),
+          category: isKey ? "Key" : isGem ? "Gem" : "Rune",
           quality: gemQuality,
           gemType: gemType
         }
@@ -91,13 +109,17 @@ export default function StreamApp() {
   // Filter and sort items
   const filteredItems = Object.entries(itemCounts)
     .filter(([_, item]) => {
-      if (item.category === "Rune") return true;
+      if (item.category === "Rune") return settings.selectedGemFilters.includes('runes');
+      if (item.category === "Key") return settings.selectedGemFilters.includes('keys');
       if (item.gemType && settings.selectedGemFilters.includes(item.gemType)) return true;
       return false;
     })
     .sort(([_, a], [__, b]) => {
       if (a.category !== b.category) {
-        return a.category === "Rune" ? -1 : 1;
+        if (a.category === "Rune") return -1;
+        if (b.category === "Rune") return 1;
+        if (a.category === "Key") return -1;
+        if (b.category === "Key") return 1;
       }
       return a.name.localeCompare(b.name);
     });
@@ -130,24 +152,33 @@ export default function StreamApp() {
     }
   });
 
+  // Render rune list based on location preference
   const renderRunesAndGems = () => {
+    if (settings.runesGemsPosition === 'off') return null;
     const isVertical = settings.runesGemsPosition === 'left' || settings.runesGemsPosition === 'right';
 
     return (
       <Box sx={{
         paddingLeft: 1,
+        paddingRight: (settings.textAlignment === 'left' ? 2 : 0),
         paddingTop: 1,
         paddingBottom: 1,
         textShadow: '0 0 2px black',
         display: 'flex',
         flexDirection: isVertical ? 'column' : 'row',
         flexWrap: 'wrap',
+        fontSize: '16px', // Adjust this value to get the desired size
+        textAlign: settings.textAlignment,
+        justifyContent: settings.textAlignment === 'left' ? 'flex-start' : 'flex-end',
+        fontVariant: 'small-caps',
         '& > *': {
-          marginRight: isVertical ? '2em' : '0.5em',
+          marginRight: isVertical ? 0 : (settings.textAlignment === 'left' ? '0.5em' : 0),
+          marginLeft: isVertical ? 0 : (settings.textAlignment === 'right' ? '0.5em' : 0),
           lineHeight: isVertical ? '1.2em' : 'inherit',
         },
         '& > *:last-child': {
           marginRight: 0,
+          marginLeft: 0,
         },
       }}>
         {itemsArr.map((item, index) => (
@@ -155,10 +186,12 @@ export default function StreamApp() {
             {item}
           </Fragment>
         ))}
+        {settings.statsDisplayMode === 'Horizontal' && (
+          <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        )}
       </Box>
     );
   };
-
 
   const renderLastUpdate = () => (
     <Box sx={{ paddingLeft: 1, paddingTop: 1, color: '#777', fontSize: 14, textShadow: '0 0 2px black' }}>
@@ -166,139 +199,117 @@ export default function StreamApp() {
     </Box>
   );
 
+  // Render stats based on selected layout
+  const statOrder: StatKey[] = ['Gold', 'Fire', 'Cold', 'Ligh', 'Pois', 'Lvl', 'Str', 'Dex', 'Vit', 'Ene', 'FHR', 'FCR', 'FRW'];
+  const statData: Record<StatKey, { value: string | number, color: string }> = {
+    Gold: { value: new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(data.stats.gold), color: '#ffbd6a' },
+    Fire: { value: data.stats.fire, color: '#ff8888' },
+    Cold: { value: data.stats.cold, color: '#8888ff' },
+    Ligh: { value: data.stats.lightning, color: '#ffff88' },
+    Pois: { value: data.stats.poison, color: '#88ff88' },
+    Lvl: { value: data.stats.level, color: 'white' },
+    Str: { value: data.stats.strength, color: 'white' },
+    Dex: { value: data.stats.dexterity, color: 'white' },
+    Vit: { value: data.stats.vitality, color: 'white' },
+    Ene: { value: data.stats.energy, color: 'white' },
+    FHR: { value: data.stats.fasterHitRate, color: 'white' },
+    FCR: { value: data.stats.fasterCastRate, color: 'white' },
+    FRW: { value: data.stats.fasterRunWalk, color: 'white' },
+  };
+
+  const renderStatLine = (stat: StatKey) => (
+    <StatLine key={stat} style={{ textAlign: settings.textAlignment }}>
+      <StatLabel style={{ color: statData[stat].color }}>
+        {stat}:
+      </StatLabel>
+      <StatValue style={{ color: statData[stat].color }}>
+        {statData[stat].value}
+      </StatValue>
+    </StatLine>
+  );
+
+  const renderGridStats = () => (
+    <Grid container spacing={0}>
+      <Grid item xs={4}>
+        {(['Gold', 'Fire', 'Cold', 'Ligh', 'Pois'] as StatKey[]).map(renderStatLine)}
+      </Grid>
+      <Grid item xs={4}>
+        {(['Lvl', 'Str', 'Dex', 'Vit', 'Ene'] as StatKey[]).map(renderStatLine)}
+      </Grid>
+      <Grid item xs={4}>
+        {(['FHR', 'FCR', 'FRW'] as StatKey[]).map(renderStatLine)}
+      </Grid>
+    </Grid>
+  );
+
+  const renderVerticalStats = () => (
+    <Box sx={{ textAlign: settings.textAlignment }}>
+      {statOrder.map(renderStatLine)}
+    </Box>
+  );
+
+  // some jank in here to make it render smallcaps
+  const renderHorizontalStats = () => (
+    <FullWidthBox sx={{ 
+      display: 'flex', 
+      flexWrap: 'wrap', 
+      fontVariant: 'small-caps',
+      justifyContent: settings.textAlignment === 'left' ? 'flex-start' : 'flex-end',
+      '& > *': { 
+        marginRight: '1em',
+        marginBottom: '0.5em',
+        whiteSpace: 'nowrap'
+      } 
+    }}>
+      {statOrder.map(stat => (
+        <span key={stat} style={{ color: statData[stat].color }}>
+          {stat}: {statData[stat].value}
+        </span>
+      ))}
+    </FullWidthBox>
+  );
+
+  const renderStats = () => {
+    switch (settings.statsDisplayMode) {
+      case 'Vertical':
+        return renderVerticalStats();
+      case 'Horizontal':
+        return renderHorizontalStats();
+      default:
+        return renderGridStats();
+    }
+  };
+
   const gold = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(data.stats.gold)
   const lastUpdateFmt = prettyMs(lastUpdate * 1000, {compact: true});
 
-  return <>
-    <GlobalStyle font={settings.font} />
-    <ThemeProvider theme={createTheme({palette: { mode: 'dark' }})}>
+
+  return (
+    <ThemeProvider theme={{ ...createTheme({palette: { mode: 'dark' }}), font: settings.font }}>
+      <GlobalStyle font={settings.font} />
       <div id="stream">
         <Box sx={{
           display: 'flex',
-          flexDirection: settings.runesGemsPosition === 'left' || settings.runesGemsPosition === 'right' ? 'row' : 'column',
-          width: `${containerWidth}%`,
+          flexDirection: 'column',
+          width: settings.statsDisplayMode === 'Horizontal' ? '100vw' : `${containerWidth}%`,
+          overflowX: 'hidden',
+          textAlign: settings.textAlignment,
         }}>
-          {settings.runesGemsPosition === 'above' && renderRunesAndGems()}
-          {settings.runesGemsPosition === 'left' && renderRunesAndGems()}
-          <Box sx={{ flexGrow: 1 }}>
-            <Grid container spacing={0}> {/* Set spacing to 0 */}
-              <Grid item xs={4}>
-                <StatLine>
-                  <StatLabel style={{  color: '#ffbd6a' }}>
-                    Gold:
-                  </StatLabel>
-                  <StatValue style={{ color: '#ffbd6a' }}>
-                    {gold}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel style={{ color: '#ff8888' }}>
-                    Fire:
-                  </StatLabel>
-                  <StatValue style={{ color: '#ff8888' }}>
-                    {data.stats.fire}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel style={{ color: '#8888ff' }}>
-                    Cold:
-                  </StatLabel>
-                  <StatValue style={{ color: '#8888ff' }}>
-                    {data.stats.cold}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel style={{ color: '#ffff88' }}>
-                    Ligh:
-                  </StatLabel>
-                  <StatValue style={{ color: '#ffff88' }}>
-                    {data.stats.lightning}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel style={{ color: '#88ff88' }}>
-                    Pois:
-                  </StatLabel>
-                  <StatValue style={{ color: '#88ff88' }}>
-                    {data.stats.poison}
-                  </StatValue>
-                </StatLine>
-              </Grid>
-              <Grid item xs={4}>
-                <StatLine>
-                  <StatLabel>
-                    Lvl:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.level}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    Str:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.strength}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    Dex:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.dexterity}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    Vit:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.vitality}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    Ene:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.energy}
-                  </StatValue>
-                </StatLine>
-              </Grid>
-              <Grid item xs={4} alignItems={'end'} >
-                <StatLine>
-                  <StatLabel>
-                    FHR:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.fasterHitRate}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    FCR:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.fasterCastRate}
-                  </StatValue>
-                </StatLine>
-                <StatLine>
-                  <StatLabel>
-                    FRW:
-                  </StatLabel>
-                  <StatValue>
-                    {data.stats.fasterRunWalk}
-                  </StatValue>
-                </StatLine>
-              </Grid>
-            </Grid>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: settings.runesGemsPosition === 'left' || settings.runesGemsPosition === 'right' ? 'row' : 'column',
+          }}>
+            {settings.runesGemsPosition === 'above' && renderRunesAndGems()}
+            {settings.runesGemsPosition === 'left' && renderRunesAndGems()}
+            <Box sx={{ flexGrow: 1 }}>
+              {renderStats()}
+            </Box>
+            {settings.runesGemsPosition === 'right' && renderRunesAndGems()}
+            {settings.runesGemsPosition === 'below' && renderRunesAndGems()}
           </Box>
-          {settings.runesGemsPosition === 'right' && renderRunesAndGems()}
-          {settings.runesGemsPosition === 'below' && renderRunesAndGems()}
           {renderLastUpdate()}
         </Box>
       </div>
     </ThemeProvider>
-  </>;
+  );
 }

@@ -16,7 +16,7 @@ export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
   }
 
   body {
-    font-family: ${props => props.font}, monospace !important;
+    font-family: ${props => props.font};
     font-size: 16px !important;
     color: #E1E1E6;
   }
@@ -27,7 +27,7 @@ export const GlobalStyle = createGlobalStyle<GlobalStyleProps>`
   }
 
   span, p, a {
-    font-family: monospace !important;
+    font-family: ${props => props.font};
   }
 
   body#streamRoot {
